@@ -93,13 +93,13 @@ dF_by_dy_grn = diff_grn(centre_position:edge_position);
 figure(13)
 plot(y_data, dF_by_dy_red)
 
-r_data = y_data - 0.5;
+r_data = y_data;
 f_r_red    = zeros(size(r_data));
 f_r_grn    = zeros(size(r_data));
 
-for lp = 1:length(r_data)
-	f_r_red(lp) = (-1/pi)* sum(  dF_by_dy_red(lp:end)*1 ./ sqrt( (y_data(lp:end)).^2 - (r_data(lp)).^2 )' )
-	f_r_grn(lp) = (-1/pi)* sum(  dF_by_dy_grn(lp:end)*1 ./ sqrt( (y_data(lp:end)).^2 - (r_data(lp)).^2 )' )
+for lp = 1:length(r_data-1)
+	f_r_red(lp) = (-1/pi)* sum(  dF_by_dy_red(lp+1:end)*1 ./ sqrt( (y_data(lp+1:end)).^2 - (r_data(lp)).^2 )' )
+	f_r_grn(lp) = (-1/pi)* sum(  dF_by_dy_grn(lp+1:end)*1 ./ sqrt( (y_data(lp+1:end)).^2 - (r_data(lp)).^2 )' )
 end
 
 figure(14)
