@@ -141,9 +141,33 @@ reconRGB = zeros([size(imResultRed) ,3]);
 reconRGB(:,:,1) = real(imResultRed)/hi_value;
 reconRGB(:,:,2) = real(imResultGrn)/hi_value;
 
+recon_R = real(imResultRed); % Main problem for R-G ratio is masking...
+recon_G = real(imResultGrn);
+% recon_R(recon_R <= hi_value/20) = 1;
+% recon_G(recon_G <= hi_value/20) = 1;
+recon_RG_ratio = zeros(size(recon_R));
+recon_Good = (recon_R > 0.1 * hi_value) & (recon_G > 0.1*hi_value);
+recon_RG_ratio(recon_Good) = recon_R(recon_Good) ./ recon_G(recon_Good);
+
 figure(17)
 imagesc(reconRGB)
-title('Red-green reconsturction of (radius, z)')
+title('Red-green reconstruction of (radius, z)')
 set(gca, 'fontSize', 14)
 xlabel('radial position / pixels')
 ylabel('Z-position / pixels')
+
+figure(18)
+imagesc(imDat(first_row:last_row, centre_position:edge_position, :))
+title('Raw flame image (y, z)')
+set(gca, 'fontSize', 14)
+xlabel('y-position / pixels')
+ylabel('Z-position / pixels')
+
+figure(19)
+imagesc(recon_RG_ratio)
+title('Reconstructed red/green ratio (r, z), dark areas masked')
+set(gca, 'fontSize', 14)
+xlabel('radial position / pixels')
+ylabel('Z-position / pixels')
+colorbar
+caxis([0 2.5])

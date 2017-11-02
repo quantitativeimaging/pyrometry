@@ -36,6 +36,6 @@ width_mm    = str2num(answer{5});
 height_mm   = str2num(answer{6});
 
 % Calculate pixels_per_mm_vert, and pixels_per_mm_horz
-pixels_per_mm_horz = width_user / width_mm;
-pixels_per_mm_vert = height_user / height_mm;
+pixels_per_mm_horz = width_user / width_mm
+pixels_per_mm_vert = height_user / height_mm
 
