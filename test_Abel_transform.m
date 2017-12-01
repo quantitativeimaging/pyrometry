@@ -118,8 +118,8 @@ f_r_red    = zeros(size(r_data));
 f_r_grn    = zeros(size(r_data));
 
 for lp = 1:length(r_data-1)
-	f_r_red(lp) = (-1/pi)* sum(  dF_by_dy_red(lp+1:end)*1 ./ sqrt( (y_data(lp+1:end)).^2 - (r_data(lp)).^2 )' )
-	f_r_grn(lp) = (-1/pi)* sum(  dF_by_dy_grn(lp+1:end)*1 ./ sqrt( (y_data(lp+1:end)).^2 - (r_data(lp)).^2 )' )
+	f_r_red(lp) = (-1/pi)* sum(  dF_by_dy_red(lp+1:end)*1 ./ sqrt( (y_data(lp+1:end)).^2 - (r_data(lp)).^2 )' );
+	f_r_grn(lp) = (-1/pi)* sum(  dF_by_dy_grn(lp+1:end)*1 ./ sqrt( (y_data(lp+1:end)).^2 - (r_data(lp)).^2 )' );
 end
 
 figure(14)
@@ -196,11 +196,15 @@ ylabel('Z-position / pixels')
 colorbar
 caxis([rg_caxis_low rg_caxis_high])
 my_cmap = colormap();
+axis equal
+ylim([1 size(recon_RG_ratio,1)])
 
 % Make a RGB (0-1, 0-1, 0-1 mode) color version for visualisation
 % With the regions of low flame brightness set to black
-recon_RG_ratio_ind = floor(size(my_cmap,1)* recon_RG_ratio ./ max(recon_RG_ratio(:)) );
-recon_RG_ratio_rgb = ind2rgb(recon_RG_ratio_ind, my_cmap);
+recon_RG_ratio_ind = ceil(size(my_cmap,1)* ( recon_RG_ratio - rg_caxis_low)./ (rg_caxis_high-rg_caxis_low) );
+recon_RG_ratio_ind(recon_RG_ratio_ind>size(my_cmap,1)) = size(my_cmap,1); % Truncate values above top of colormap
+recon_RG_ratio_ind(recon_RG_ratio_ind<1) = 1; % Truncate low values. For doubles, 1 is the first colormap entry. 
+recon_RG_ratio_rgb = ind2rgb(recon_RG_ratio_ind - rg_caxis_low, my_cmap);
 for lp = 1:3
 	myChannel = recon_RG_ratio_rgb(:,:,lp);
   myChannel(not(recon_Good) ) = 0;
@@ -215,5 +219,6 @@ xlabel('radius, r / pixels')
 ylabel('height, z / pixels')
 colorbar
 caxis([rg_caxis_low rg_caxis_high])
-
+axis equal
+ylim([1 size(recon_RG_ratio_rgb,1)])
 
