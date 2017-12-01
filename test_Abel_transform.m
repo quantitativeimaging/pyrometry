@@ -16,6 +16,11 @@
 % 1. Run this script. 
 % 2. Select file to process
 % 3. Specify region for transform, including centreline position
+%
+% Questions to think about and check
+% 1. What is the effect of smoothing the raw data?
+% 2. Why not use both sides of the (symmetric) flame for better estimation
+% 3. Why are some complex numbers produced (co-ordinate offset?)
 
 % INPUT: Specify file to process
 [filename, pathname] = uigetfile({'*.tif'},'Select input image',...
@@ -35,17 +40,28 @@ edge_position   = 560;
 first_row       = 710;
 last_row        = 740;
 smoothing       = 5;
+threshold_red   = 0.1; % To segment 'good' regions of bright-enough flame
+threshold_grn   = 0.1;
+rg_caxis_low    = 0;
+rg_caxis_high   = 2.0;
 
+% Prompt user to confirm parameters
 prompt = {'Y (horizontal) position of centreline', ...
 	        'Y (horizontal) position beyond flame edge', ...
 					'first row to process', ...
 					'last row to process', ...
-					'amount of smoothing'};
+					'amount of smoothing', ...
+					'Red threshold', ...
+					'Green threshold' ...
+					'Red-green ratio scale (low)' ...
+					'Red-green ratio scale (high)' };
 dlg_title = 'Please confirm red threshold';
 num_lines = 1;
 defaultans = {num2str(centre_position),num2str(edge_position),...
 	            num2str(first_row),num2str(last_row),...
-							num2str(smoothing) };
+							num2str(smoothing), ...
+							num2str(threshold_red), num2str(threshold_grn ), ... 
+							num2str(rg_caxis_low ), num2str(rg_caxis_high ) };
 answer = inputdlg(prompt,dlg_title,num_lines,defaultans);
 
 centre_position = str2double( answer{1} );
@@ -53,6 +69,10 @@ edge_position   = str2double( answer{2} );
 first_row       = str2double( answer{3} );
 last_row        = str2double( answer{4} );
 smoothing       = str2double( answer{5} );
+threshold_red   = str2double( answer{6} );
+threshold_grn   = str2double( answer{7} );
+rg_caxis_low    = str2double( answer{8} );
+rg_caxis_high   = str2double( answer{9} );
 
 % Create empty images to store the result of the inverse Abel transform
 imResultRed = zeros(last_row - first_row + 1, edge_position - centre_position +1);
@@ -116,8 +136,11 @@ imResultRed(lpZ-first_row + 1,:) = f_r_red;
 imResultGrn(lpZ-first_row + 1,:) = f_r_grn;
 end
 
-
-hi_value = max( max(real(imResultRed(:))), max(real(imResultGrn(:))) );
+% 3. OUTPUT
+% Quantify and visualise the reconstructed image data
+hi_value_red = max( max(real(imResultRed(:))) );
+hi_value_grn = max( max(real(imResultGrn(:))) );
+hi_value     = max( hi_value_red, hi_value_grn );
 
 figure(15)
 recon_red = zeros([size(imResultRed) ,3]);
@@ -132,7 +155,7 @@ figure(16)
 recon_grn = zeros([size(imResultGrn) ,3]);
 recon_grn(:,:,2) = real(imResultGrn)./max(real(imResultGrn(:)));
 imagesc(recon_grn)
-title('Flame red luminance (radius, z)')
+title('Flame green luminance (radius, z)')
 set(gca, 'fontSize', 14)
 xlabel('radial position / pixels')
 ylabel('Z-position / pixels')
@@ -146,12 +169,13 @@ recon_G = real(imResultGrn);
 % recon_R(recon_R <= hi_value/20) = 1;
 % recon_G(recon_G <= hi_value/20) = 1;
 recon_RG_ratio = zeros(size(recon_R));
-recon_Good = (recon_R > 0.1 * hi_value) & (recon_G > 0.1*hi_value);
+recon_Good = (recon_R > threshold_red * hi_value_red) & ...
+	           (recon_G > threshold_grn * hi_value_grn);
 recon_RG_ratio(recon_Good) = recon_R(recon_Good) ./ recon_G(recon_Good);
 
 figure(17)
 imagesc(reconRGB)
-title('Red-green reconstruction of (radius, z)')
+title('Red+green reconstruction of (radius, z)')
 set(gca, 'fontSize', 14)
 xlabel('radial position / pixels')
 ylabel('Z-position / pixels')
@@ -170,4 +194,26 @@ set(gca, 'fontSize', 14)
 xlabel('radial position / pixels')
 ylabel('Z-position / pixels')
 colorbar
-caxis([0 2.5])
+caxis([rg_caxis_low rg_caxis_high])
+my_cmap = colormap();
+
+% Make a RGB (0-1, 0-1, 0-1 mode) color version for visualisation
+% With the regions of low flame brightness set to black
+recon_RG_ratio_ind = floor(size(my_cmap,1)* recon_RG_ratio ./ max(recon_RG_ratio(:)) );
+recon_RG_ratio_rgb = ind2rgb(recon_RG_ratio_ind, my_cmap);
+for lp = 1:3
+	myChannel = recon_RG_ratio_rgb(:,:,lp);
+  myChannel(not(recon_Good) ) = 0;
+	recon_RG_ratio_rgb(:,:,lp) = myChannel;
+end
+
+figure(20)
+imagesc(recon_RG_ratio_rgb)
+title('f_{red}(r,z) / f_{green}(r,z), dim regions = black')
+set(gca, 'fontSize', 14)
+xlabel('radius, r / pixels')
+ylabel('height, z / pixels')
+colorbar
+caxis([rg_caxis_low rg_caxis_high])
+
+
